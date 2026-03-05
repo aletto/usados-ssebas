@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Venta Usado en San Sebastian</title>
+
+<style>
+  :root{ --green:#2a7; --orange:#f39c12; --red:#e74c3c; }
+  body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f5f5f5;
+    margin:24px;
+    color:#111;
+  }
+  h1{ margin:0 0 12px 0; font-size:34px; }
+
+  .toolbar{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    padding:9px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+    font-size:13px;
+  }
+  .btn.primary{
+    background:#111;
+    color:#fff;
+    border-color:#111;
+  }
+
+  .category{ margin-top:26px; }
+  .category-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    user-select:none;
+    cursor:pointer;
+  }
+  .category-header h2{ margin:0; font-size:26px; }
+
+  .chev{
+    font-weight:900;
+    font-size:18px;
+    opacity:.8;
+    padding:6px 10px;
+    border-radius:9px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,.06);
+  }
+
+  .products{
+    margin-top:12px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:16px;
+  }
+  .products.collapsed{ display:none; }
+
+  .card{
+    position:relative;
+    background:#fff;
+    border-radius:12px;
+    padding:14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    border:1px solid rgba(0,0,0,.04);
+    min-height:170px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .badge{
+    position:absolute;
+    top:12px;
+    right:12px;
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:800;
+    color:white;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+  }
+  .badge.reservado{ background:var(--orange); }
+  .badge.vendido{ background:var(--red); }
+
+  .thumb{
+    width:100%;
+    height:160px;
+    object-fit:cover;
+    border-radius:8px;
+    cursor:zoom-in;
+    background:#eee;
+    margin-bottom:10px;
+  }
+
+  .desc{ font-weight:700; margin-bottom:6px; font-size:14px; line-height:1.2rem; }
+  .price{ font-weight:800; color:var(--green); font-size:16px; margin-bottom:8px; }
+
+  .actions{
+    display:flex;
+    gap:8px;
+    margin-top:auto;
+    flex-wrap:wrap;
+  }
+
+  /* Para que NO se vea azul/subrayado */
+  a.action{
+    text-decoration:none;
+    color:inherit;
+  }
+
+  .action{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:1px solid rgba(0,0,0,.08);
+    background:#fff;
+    padding:8px 10px;
+    border-radius:9px;
+    font-weight:800;
+    color:#111;
+    font-size:13px;
+    cursor:pointer;
+    line-height:1;
+  }
+
+  .action.whatsapp{
+    background:#25D366;
+    border-color:#25D366;
+    color:#063b21;
+  }
+
+  .action.icon{
+    width:40px;
+    padding:8px 0;
+  }
+
+  /* modal zoom (el “lindo”) */
+  .modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.78);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:18px;
+  }
+  .modal.open{ display:flex; }
+  .modal-inner{
+    max-width:min(1100px,96vw);
+    max-height:92vh;
+    background:#111;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.12);
+  }
+  .modal-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 12px;
+    color:#fff;
+    background:rgba(0,0,0,.45);
+    font-size:13px;
+  }
+  .modal-close{
+    background:transparent;
+    color:#fff;
+    border:1px solid rgba(255,255,255,.12);
+    padding:6px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .modal-img{
+    display:block;
+    max-width:96vw;
+    max-height:calc(92vh - 46px);
+    margin:auto;
+  }
+
+  /* toast */
+  .toast{
+    position:fixed;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#111;
+    color:#fff;
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:13px;
+    display:none;
+    z-index:10000;
+    box-shadow:0 8px 30px rgba(0,0,0,.25);
+  }
+  .toast.show{ display:block; }
+
+  @media (max-width:720px){
+    body{ margin:12px; }
+    .thumb{ height:140px; }
+    .category-header h2{ font-size:20px; }
+  }
+</style>
+</head>
+
+<body>
+
+<h1>Venta Usado en San Sebastián</h1>
+
+<div class="toolbar">
+  <button id="toggleAll" class="btn">Colapsar todo</button>
+  <button id="toggleReserved" class="btn">Ocultar reservados</button>
+</div>
+
+<div id="catalog">Cargando...</div>
+
+<!-- Modal zoom -->
+<div id="modal" class="modal" aria-hidden="true">
+  <div class="modal-inner" role="dialog" aria-modal="true">
+    <div class="modal-top">
+      <div id="modalTitle">Imagen</div>
+      <button id="closeModal" class="modal-close">Cerrar</button>
+    </div>
+    <img id="modalImg" class="modal-img" alt="" />
+  </div>
+</div>
+
+<div id="toast" class="toast">Link copiado al portapapeles</div>
+
+<script>
+/* ========== CONFIG ========== */
+const sheetURL = "https://opensheet.elk.sh/1VWvZIZdfPJPoxAJPzoadX5sf-EDE_hPJGNoY8iOPSz4/Hoja+2";
+const WHATSAPP_PHONE = "1123127437";
+/* ============================ */
+
+function extractDriveId(s){
+  if(!s) return "";
+  s = String(s);
+  let m = s.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  m = s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  if(/^[a-zA-Z0-9_-]{20,}$/.test(s)) return s;
+  return "";
+}
+
+function driveThumbUrl(value, width=900){
+  const id = extractDriveId(value);
+  if(!id) return "";
+  return `https://drive.google.com/thumbnail?id=${id}&sz=w${width}`;
+}
+
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function slugify(s){
+  return String(s || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0,80);
+}
+
+function baseUrlNoHash(){
+  const u = new URL(window.location.href);
+  u.hash = "";
+  return u.toString();
+}
+function buildItemUrl(anchor){ return `${baseUrlNoHash()}#${anchor}`; }
+
+function buildWhatsappLink({title, price, photoUrl, itemUrl}){
+  const msg = [
+    "Hola, me interesa este artículo:",
+    `- ${title}`,
+    price ? `Precio: ${price}` : ""
+  ].filter(Boolean).join("\n");
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(msg)}`;
+}
+
+/* Toast */
+const toastEl = document.getElementById("toast");
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  setTimeout(()=>toastEl.classList.remove("show"), 1500);
+}
+
+/* Modal (zoom) */
+const modalEl = document.getElementById("modal");
+const modalImgEl = document.getElementById("modalImg");
+const modalTitleEl = document.getElementById("modalTitle");
+const closeModalEl = document.getElementById("closeModal");
+
+function openModal(src, title){
+  modalTitleEl.textContent = title || "Imagen";
+  modalImgEl.src = src;
+  modalImgEl.alt = title || "";
+  modalEl.classList.add("open");
+  modalEl.setAttribute("aria-hidden","false");
+}
+function closeModal(){
+  modalEl.classList.remove("open");
+  modalEl.setAttribute("aria-hidden","true");
+  modalImgEl.src = "";
+}
+closeModalEl.addEventListener("click", closeModal);
+modalEl.addEventListener("click", (e)=>{ if(e.target === modalEl) closeModal(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && modalEl.classList.contains("open")) closeModal(); });
+
+/* Toggles */
+let hideReserved = false;
+let allCollapsed = false;
+
+/* Render */
+fetch(sheetURL)
+  .then(r => r.json())
+  .then(data => {
+    const categories = {};
+
+    data.forEach(item => {
+      const estadoRaw = (item.ESTADO || "").toString().trim();
+      const estado = estadoRaw.toLowerCase();
+      if(estado === "vendido") return; // ocultar vendidos
+      const cat = (item.CATEGORIA || "Sin categoría").toString().trim();
+      (categories[cat] ||= []).push({...item, __estado_raw: estadoRaw, __estado: estado});
+    });
+
+    const cats = Object.keys(categories).sort((a,b)=>a.localeCompare(b,"es"));
+
+    let html = "";
+    cats.forEach(cat=>{
+      const catId = "cat-" + slugify(cat);
+      html += `
+        <div class="category" data-cat="${escapeHtml(catId)}">
+          <div class="category-header" data-cat-header="${escapeHtml(catId)}">
+            <h2>${escapeHtml(cat)}</h2>
+            <span class="chev" data-chev="${escapeHtml(catId)}">▾</span>
+          </div>
+          <div class="products" id="${escapeHtml(catId)}">
+      `;
+
+      categories[cat].forEach(p=>{
+        const title = (p.DESCRIPCION || "").toString().trim();
+        const price = (p.PRECIO || "").toString().trim();
+        const estadoRaw = p.__estado_raw || "";
+        const estado = p.__estado || "";
+
+        const imgSmall = driveThumbUrl(p.IMGURL, 900) || "";
+        const imgLarge = driveThumbUrl(p.IMGURL, 1600) || "";
+
+        const anchor = slugify(`${cat}-${title}-${p.IMGURL || ""}`);
+        const itemUrl = buildItemUrl(anchor);
+        const wa = buildWhatsappLink({title, price, photoUrl: imgSmall, itemUrl});
+
+        let badgeHtml = "";
+        if(estado){
+          const cls = estado === "reservado" ? "reservado" : (estado === "vendido" ? "vendido" : escapeHtml(estado));
+          badgeHtml = `<div class="badge ${cls}">${escapeHtml(estadoRaw)}</div>`;
+        }
+
+        html += `
+          <div class="card" id="${escapeHtml(anchor)}" data-estado="${escapeHtml(estado)}" data-link="${escapeHtml(itemUrl)}">
+            ${badgeHtml}
+            <img
+              class="thumb"
+              src="${escapeHtml(imgSmall)}"
+              data-large="${escapeHtml(imgLarge)}"
+              data-title="${escapeHtml(title)}"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              onerror="this.style.display='none';"
+              alt="${escapeHtml(title)}"
+            />
+            <div class="desc">${escapeHtml(title)}</div>
+            <div class="price">${escapeHtml(price)}</div>
+
+            <div class="actions">
+              <a class="action whatsapp" href="${escapeHtml(wa)}" target="_blank" rel="noopener">WhatsApp</a>
+              <button class="action icon copy-link" type="button" data-link="${escapeHtml(itemUrl)}" title="Copiar link">🔗</button>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div></div>`;
+    });
+
+    document.getElementById("catalog").innerHTML = html;
+
+    /* Zoom */
+    document.querySelectorAll(".thumb").forEach(img=>{
+      img.addEventListener("click", ()=>{
+        const src = img.getAttribute("data-large") || img.src;
+        const title = img.getAttribute("data-title") || "Imagen";
+        openModal(src, title);
+      });
+    });
+
+    /* Copy link */
+    document.querySelectorAll(".copy-link").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const link = btn.getAttribute("data-link") || "";
+        try{
+          await navigator.clipboard.writeText(link);
+          showToast("Link copiado al portapapeles");
+        }catch(e){
+          prompt("Copiá este link:", link);
+        }
+      });
+    });
+
+    /* Collapse by category */
+    document.querySelectorAll("[data-cat-header]").forEach(header=>{
+      header.addEventListener("click", ()=>{
+        const catId = header.getAttribute("data-cat-header");
+        const list = document.getElementById(catId);
+        const chev = document.querySelector(`[data-chev="${CSS.escape(catId)}"]`);
+        if(!list) return;
+        const collapsed = list.classList.toggle("collapsed");
+        if(chev) chev.textContent = collapsed ? "▸" : "▾";
+      });
+    });
+
+    /* Apply reserved filter if already toggled */
+    applyReservedVisibility();
+
+    /* Anchor scroll */
+    if(window.location.hash){
+      const id = window.location.hash.slice(1);
+      const el = document.getElementById(id);
+      if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+  })
+  .catch(err=>{
+    console.error(err);
+    document.getElementById("catalog").innerHTML = "<p>No se pudo cargar la planilla. Verificá la URL y que esté publicada.</p>";
+  });
+
+function applyReservedVisibility(){
+  document.querySelectorAll('.card[data-estado="reservado"]').forEach(card=>{
+    card.style.display = hideReserved ? "none" : "";
+  });
+}
+
+document.getElementById("toggleAll").addEventListener("click", ()=>{
+  allCollapsed = !allCollapsed;
+  document.querySelectorAll(".products").forEach(list=>{
+    list.classList.toggle("collapsed", allCollapsed);
+  });
+  document.querySelectorAll("[data-chev]").forEach(c=>{
+    c.textContent = allCollapsed ? "▸" : "▾";
+  });
+  document.getElementById("toggleAll").textContent = allCollapsed ? "Expandir todo" : "Colapsar todo";
+});
+
+document.getElementById("toggleReserved").addEventListener("click", ()=>{
+  hideReserved = !hideReserved;
+  applyReservedVisibility();
+  document.getElementById("toggleReserved").textContent = hideReserved ? "Mostrar reservados" : "Ocultar reservados";
+});
+</script>
+
+</body>
+</html>
